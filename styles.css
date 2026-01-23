@@ -1,10 +1,10 @@
-/* Live Explain Modal Styles */
+/* Smart Explain Modal Styles */
 
-.live-explain-modal .modal-bg {
+.smart-explain-modal .modal-bg {
   background-color: transparent;
 }
 
-.live-explain-modal-inner {
+.smart-explain-modal-inner {
   width: 400px;
   height: 300px;
   padding: 0;
@@ -13,7 +13,7 @@
   overflow: hidden;
 }
 
-.live-explain-modal-inner .modal-content {
+.smart-explain-modal-inner .modal-content {
   height: 100%;
   padding: 16px;
   display: flex;
@@ -21,14 +21,14 @@
   overflow: hidden;
 }
 
-.live-explain-scroll-container {
+.smart-explain-scroll-container {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;  /* Important for flex child scrolling */
 }
 
-.live-explain-loading {
+.smart-explain-loading {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -36,56 +36,56 @@
   color: var(--text-muted);
 }
 
-.live-explain-spinner {
+.smart-explain-spinner {
   width: 20px;
   height: 20px;
   border: 2px solid var(--background-modifier-border);
   border-top-color: var(--interactive-accent);
   border-radius: 50%;
-  animation: live-explain-spin 0.8s linear infinite;
+  animation: smart-explain-spin 0.8s linear infinite;
 }
 
-@keyframes live-explain-spin {
+@keyframes smart-explain-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.live-explain-error {
+.smart-explain-error {
   padding: 16px;
   color: var(--text-error);
   background-color: var(--background-modifier-error);
   border-radius: 4px;
 }
 
-.live-explain-content {
+.smart-explain-content {
   font-size: 14px;
   line-height: 1.6;
 }
 
-.live-explain-content p {
+.smart-explain-content p {
   margin: 0 0 12px 0;
 }
 
-.live-explain-content p:last-child {
+.smart-explain-content p:last-child {
   margin-bottom: 0;
 }
 
-.live-explain-content ul,
-.live-explain-content ol {
+.smart-explain-content ul,
+.smart-explain-content ol {
   margin: 8px 0;
   padding-left: 20px;
 }
 
-.live-explain-content li {
+.smart-explain-content li {
   margin: 4px 0;
 }
 
-.live-explain-content strong {
+.smart-explain-content strong {
   color: var(--text-normal);
 }
 
-.live-explain-content code {
+.smart-explain-content code {
   background-color: var(--background-secondary);
   padding: 2px 4px;
   border-radius: 3px;

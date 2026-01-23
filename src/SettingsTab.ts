@@ -1,18 +1,18 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
-import type LiveExplainPlugin from './main';
+import type SmartExplainPlugin from './main';
 
-export interface LiveExplainSettings {
+export interface SmartExplainSettings {
   apiKey: string;
 }
 
-export const DEFAULT_SETTINGS: LiveExplainSettings = {
+export const DEFAULT_SETTINGS: SmartExplainSettings = {
   apiKey: '',
 };
 
-export class LiveExplainSettingsTab extends PluginSettingTab {
-  plugin: LiveExplainPlugin;
+export class SmartExplainSettingsTab extends PluginSettingTab {
+  plugin: SmartExplainPlugin;
 
-  constructor(app: App, plugin: LiveExplainPlugin) {
+  constructor(app: App, plugin: SmartExplainPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }
@@ -21,7 +21,7 @@ export class LiveExplainSettingsTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Live Explain Settings' });
+    containerEl.createEl('h2', { text: 'Smart Explain Settings' });
 
     new Setting(containerEl)
       .setName('Gemini API Key')

@@ -24,7 +24,7 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/main.ts
 var main_exports = {};
 __export(main_exports, {
-  default: () => LiveExplainPlugin
+  default: () => SmartExplainPlugin
 });
 module.exports = __toCommonJS(main_exports);
 var import_obsidian3 = require("obsidian");
@@ -50,8 +50,8 @@ var ExplainModal = class extends import_obsidian.Modal {
     };
   }
   onOpen() {
-    this.containerEl.addClass("live-explain-modal");
-    this.modalEl.addClass("live-explain-modal-inner");
+    this.containerEl.addClass("smart-explain-modal");
+    this.modalEl.addClass("smart-explain-modal-inner");
     this.positionModal();
     this.render();
     setTimeout(() => {
@@ -132,18 +132,18 @@ var ExplainModal = class extends import_obsidian.Modal {
     const { contentEl } = this;
     contentEl.empty();
     if (this.isLoading) {
-      const loadingEl = contentEl.createEl("div", { cls: "live-explain-loading" });
-      loadingEl.createEl("div", { cls: "live-explain-spinner" });
+      const loadingEl = contentEl.createEl("div", { cls: "smart-explain-loading" });
+      loadingEl.createEl("div", { cls: "smart-explain-spinner" });
       loadingEl.createEl("span", { text: "Thinking..." });
       return;
     }
     if (this.error) {
-      const errorEl = contentEl.createEl("div", { cls: "live-explain-error" });
+      const errorEl = contentEl.createEl("div", { cls: "smart-explain-error" });
       errorEl.createEl("span", { text: this.error });
       return;
     }
-    const scrollContainer = contentEl.createEl("div", { cls: "live-explain-scroll-container" });
-    this.contentWrapper = scrollContainer.createEl("div", { cls: "live-explain-content" });
+    const scrollContainer = contentEl.createEl("div", { cls: "smart-explain-scroll-container" });
+    this.contentWrapper = scrollContainer.createEl("div", { cls: "smart-explain-content" });
     if (this.content) {
       import_obsidian.MarkdownRenderer.render(
         this.app,
@@ -1259,7 +1259,7 @@ var import_obsidian2 = require("obsidian");
 var DEFAULT_SETTINGS = {
   apiKey: ""
 };
-var LiveExplainSettingsTab = class extends import_obsidian2.PluginSettingTab {
+var SmartExplainSettingsTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -1267,7 +1267,7 @@ var LiveExplainSettingsTab = class extends import_obsidian2.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Live Explain Settings" });
+    containerEl.createEl("h2", { text: "Smart Explain Settings" });
     new import_obsidian2.Setting(containerEl).setName("Gemini API Key").setDesc("Enter your Google Gemini API key. Get one at https://aistudio.google.com/apikey").addText(
       (text) => text.setPlaceholder("Enter your API key").setValue(this.plugin.settings.apiKey).onChange(async (value) => {
         this.plugin.settings.apiKey = value;
@@ -1278,10 +1278,10 @@ var LiveExplainSettingsTab = class extends import_obsidian2.PluginSettingTab {
 };
 
 // src/main.ts
-var LiveExplainPlugin = class extends import_obsidian3.Plugin {
+var SmartExplainPlugin = class extends import_obsidian3.Plugin {
   async onload() {
     await this.loadSettings();
-    this.addSettingTab(new LiveExplainSettingsTab(this.app, this));
+    this.addSettingTab(new SmartExplainSettingsTab(this.app, this));
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const selection = editor.getSelection();
@@ -1307,7 +1307,7 @@ var LiveExplainPlugin = class extends import_obsidian3.Plugin {
   }
   async explainSelection(editor, view) {
     if (!this.settings.apiKey) {
-      new import_obsidian3.Notice("Please set your Gemini API key in Live Explain settings");
+      new import_obsidian3.Notice("Please set your Gemini API key in Smart Explain settings");
       return;
     }
     const coords = this.getSelectionCoords(view);
