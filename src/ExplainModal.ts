@@ -3,10 +3,12 @@ import { App, Modal, MarkdownRenderer, Component } from 'obsidian';
 export class ExplainModal extends Modal {
   private content: string = '';
   private isLoading: boolean = true;
+  private isStreaming: boolean = false;
   private error: string | null = null;
   private targetCoords: { x: number; y: number };
   private renderComponent: Component;
   private clickHandler: (e: MouseEvent) => void;
+  private contentWrapper: HTMLElement | null = null;
 
   constructor(app: App, coords: { x: number; y: number }) {
     super(app);
@@ -55,13 +57,41 @@ export class ExplainModal extends Modal {
   setContent(content: string) {
     this.content = content;
     this.isLoading = false;
+    this.isStreaming = false;
     this.error = null;
     this.render();
+  }
+
+  startStreaming() {
+    this.content = '';
+    this.isLoading = true;  // Keep showing "Thinking..." until first chunk
+    this.isStreaming = true;
+    this.error = null;
+    this.render();
+  }
+
+  appendChunk(chunk: string) {
+    // On first chunk, switch from loading to content view
+    if (this.isLoading) {
+      this.isLoading = false;
+      this.content = chunk;
+      this.render();
+    } else {
+      this.content += chunk;
+      this.rerenderContent();
+    }
+  }
+
+  finishStreaming() {
+    this.isStreaming = false;
+    // Final re-render to remove any streaming indicators
+    this.rerenderContent();
   }
 
   setError(error: string) {
     this.error = error;
     this.isLoading = false;
+    this.isStreaming = false;
     this.render();
   }
 
@@ -120,13 +150,35 @@ export class ExplainModal extends Modal {
       return;
     }
 
-    const contentWrapper = contentEl.createEl('div', { cls: 'live-explain-content' });
-    MarkdownRenderer.render(
-      this.app,
-      this.content,
-      contentWrapper,
-      '',
-      this.renderComponent
-    );
+    // Create scrollable container
+    const scrollContainer = contentEl.createEl('div', { cls: 'live-explain-scroll-container' });
+    this.contentWrapper = scrollContainer.createEl('div', { cls: 'live-explain-content' });
+
+    if (this.content) {
+      MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        '',
+        this.renderComponent
+      );
+    }
+  }
+
+  private rerenderContent() {
+    if (!this.contentWrapper) return;
+
+    // Clear and re-render markdown content
+    this.contentWrapper.empty();
+
+    if (this.content) {
+      MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        '',
+        this.renderComponent
+      );
+    }
   }
 }

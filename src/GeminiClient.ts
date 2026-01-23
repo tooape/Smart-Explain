@@ -48,6 +48,37 @@ export class GeminiClient {
     }
   }
 
+  async *explainStream(context: ExplainContext): AsyncGenerator<string, void, unknown> {
+    const prompt = this.buildPrompt(context);
+
+    try {
+      const model = this.ai.getGenerativeModel({
+        model: this.model,
+        systemInstruction: SYSTEM_PROMPT,
+      });
+
+      const result = await model.generateContentStream(prompt);
+
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          yield text;
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          throw new Error('Invalid API key. Please check your Gemini API key in settings.');
+        }
+        if (error.message.includes('quota') || error.message.includes('rate')) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        throw new Error(`Gemini API error: ${error.message}`);
+      }
+      throw new Error('An unexpected error occurred while calling Gemini.');
+    }
+  }
+
   private buildPrompt(context: ExplainContext): string {
     const headingPath = context.headingPath.length > 0
       ? context.headingPath.join(' > ')

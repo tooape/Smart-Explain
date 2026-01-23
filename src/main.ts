@@ -60,12 +60,17 @@ export default class LiveExplainPlugin extends Plugin {
     modal.open();
 
     try {
-      // Call Gemini API
       const client = new GeminiClient(this.settings.apiKey);
-      const explanation = await client.explain(context);
 
-      // Update modal with response
-      modal.setContent(explanation);
+      // Start streaming - shows empty content area ready for chunks
+      modal.startStreaming();
+
+      // Stream chunks from Gemini
+      for await (const chunk of client.explainStream(context)) {
+        modal.appendChunk(chunk);
+      }
+
+      modal.finishStreaming();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'An error occurred';
       modal.setError(message);
