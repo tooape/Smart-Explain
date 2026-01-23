@@ -2,16 +2,16 @@ import { Editor, MarkdownView, Notice, Plugin } from 'obsidian';
 import { ExplainModal } from './ExplainModal';
 import { GeminiClient } from './GeminiClient';
 import { extractContext } from './ContextExtractor';
-import { LiveExplainSettings, DEFAULT_SETTINGS, LiveExplainSettingsTab } from './SettingsTab';
+import { SmartExplainSettings, DEFAULT_SETTINGS, SmartExplainSettingsTab } from './SettingsTab';
 
-export default class LiveExplainPlugin extends Plugin {
-  settings: LiveExplainSettings;
+export default class SmartExplainPlugin extends Plugin {
+  settings: SmartExplainSettings;
 
   async onload() {
     await this.loadSettings();
 
     // Add settings tab
-    this.addSettingTab(new LiveExplainSettingsTab(this.app, this));
+    this.addSettingTab(new SmartExplainSettingsTab(this.app, this));
 
     // Register context menu item
     this.registerEvent(
@@ -45,7 +45,7 @@ export default class LiveExplainPlugin extends Plugin {
   async explainSelection(editor: Editor, view: MarkdownView) {
     // Check for API key
     if (!this.settings.apiKey) {
-      new Notice('Please set your Gemini API key in Live Explain settings');
+      new Notice('Please set your Gemini API key in Smart Explain settings');
       return;
     }
 

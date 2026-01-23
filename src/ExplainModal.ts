@@ -26,8 +26,8 @@ export class ExplainModal extends Modal {
   }
 
   onOpen() {
-    this.containerEl.addClass('live-explain-modal');
-    this.modalEl.addClass('live-explain-modal-inner');
+    this.containerEl.addClass('smart-explain-modal');
+    this.modalEl.addClass('smart-explain-modal-inner');
 
     // Position near the selection
     this.positionModal();
@@ -138,21 +138,21 @@ export class ExplainModal extends Modal {
     contentEl.empty();
 
     if (this.isLoading) {
-      const loadingEl = contentEl.createEl('div', { cls: 'live-explain-loading' });
-      loadingEl.createEl('div', { cls: 'live-explain-spinner' });
+      const loadingEl = contentEl.createEl('div', { cls: 'smart-explain-loading' });
+      loadingEl.createEl('div', { cls: 'smart-explain-spinner' });
       loadingEl.createEl('span', { text: 'Thinking...' });
       return;
     }
 
     if (this.error) {
-      const errorEl = contentEl.createEl('div', { cls: 'live-explain-error' });
+      const errorEl = contentEl.createEl('div', { cls: 'smart-explain-error' });
       errorEl.createEl('span', { text: this.error });
       return;
     }
 
     // Create scrollable container
-    const scrollContainer = contentEl.createEl('div', { cls: 'live-explain-scroll-container' });
-    this.contentWrapper = scrollContainer.createEl('div', { cls: 'live-explain-content' });
+    const scrollContainer = contentEl.createEl('div', { cls: 'smart-explain-scroll-container' });
+    this.contentWrapper = scrollContainer.createEl('div', { cls: 'smart-explain-content' });
 
     if (this.content) {
       MarkdownRenderer.render(
