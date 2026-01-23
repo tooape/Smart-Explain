@@ -36,7 +36,9 @@ var ExplainModal = class extends import_obsidian.Modal {
     super(app);
     this.content = "";
     this.isLoading = true;
+    this.isStreaming = false;
     this.error = null;
+    this.contentWrapper = null;
     this.targetCoords = coords;
     this.renderComponent = new import_obsidian.Component();
     this.clickHandler = (e) => {
@@ -69,12 +71,35 @@ var ExplainModal = class extends import_obsidian.Modal {
   setContent(content) {
     this.content = content;
     this.isLoading = false;
+    this.isStreaming = false;
     this.error = null;
     this.render();
+  }
+  startStreaming() {
+    this.content = "";
+    this.isLoading = true;
+    this.isStreaming = true;
+    this.error = null;
+    this.render();
+  }
+  appendChunk(chunk) {
+    if (this.isLoading) {
+      this.isLoading = false;
+      this.content = chunk;
+      this.render();
+    } else {
+      this.content += chunk;
+      this.rerenderContent();
+    }
+  }
+  finishStreaming() {
+    this.isStreaming = false;
+    this.rerenderContent();
   }
   setError(error) {
     this.error = error;
     this.isLoading = false;
+    this.isStreaming = false;
     this.render();
   }
   positionModal() {
@@ -117,14 +142,31 @@ var ExplainModal = class extends import_obsidian.Modal {
       errorEl.createEl("span", { text: this.error });
       return;
     }
-    const contentWrapper = contentEl.createEl("div", { cls: "live-explain-content" });
-    import_obsidian.MarkdownRenderer.render(
-      this.app,
-      this.content,
-      contentWrapper,
-      "",
-      this.renderComponent
-    );
+    const scrollContainer = contentEl.createEl("div", { cls: "live-explain-scroll-container" });
+    this.contentWrapper = scrollContainer.createEl("div", { cls: "live-explain-content" });
+    if (this.content) {
+      import_obsidian.MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        "",
+        this.renderComponent
+      );
+    }
+  }
+  rerenderContent() {
+    if (!this.contentWrapper)
+      return;
+    this.contentWrapper.empty();
+    if (this.content) {
+      import_obsidian.MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        "",
+        this.renderComponent
+      );
+    }
   }
 };
 
@@ -1134,6 +1176,33 @@ var GeminiClient = class {
       throw new Error("An unexpected error occurred while calling Gemini.");
     }
   }
+  async *explainStream(context) {
+    const prompt = this.buildPrompt(context);
+    try {
+      const model = this.ai.getGenerativeModel({
+        model: this.model,
+        systemInstruction: SYSTEM_PROMPT
+      });
+      const result = await model.generateContentStream(prompt);
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          yield text;
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes("API key")) {
+          throw new Error("Invalid API key. Please check your Gemini API key in settings.");
+        }
+        if (error.message.includes("quota") || error.message.includes("rate")) {
+          throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+        }
+        throw new Error(`Gemini API error: ${error.message}`);
+      }
+      throw new Error("An unexpected error occurred while calling Gemini.");
+    }
+  }
   buildPrompt(context) {
     const headingPath = context.headingPath.length > 0 ? context.headingPath.join(" > ") : "No heading";
     return `CONTEXT:
@@ -1247,8 +1316,11 @@ var LiveExplainPlugin = class extends import_obsidian3.Plugin {
     modal.open();
     try {
       const client = new GeminiClient(this.settings.apiKey);
-      const explanation = await client.explain(context);
-      modal.setContent(explanation);
+      modal.startStreaming();
+      for await (const chunk of client.explainStream(context)) {
+        modal.appendChunk(chunk);
+      }
+      modal.finishStreaming();
     } catch (error) {
       const message = error instanceof Error ? error.message : "An error occurred";
       modal.setError(message);
