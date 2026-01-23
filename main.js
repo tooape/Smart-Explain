@@ -1225,8 +1225,8 @@ function extractContext(editor, view) {
   const noteTitle = ((_a = view.file) == null ? void 0 : _a.basename) || "Untitled";
   const cursorOffset = editor.posToOffset(cursor);
   const selectionEnd = editor.posToOffset(editor.getCursor("to"));
-  const chunkStart = Math.max(0, cursorOffset - 500);
-  const chunkEnd = Math.min(content.length, selectionEnd + 500);
+  const chunkStart = Math.max(0, cursorOffset - 100);
+  const chunkEnd = Math.min(content.length, selectionEnd + 100);
   const surroundingChunk = content.slice(chunkStart, chunkEnd);
   const headingPath = extractHeadingPath(content, cursor.line);
   return {
