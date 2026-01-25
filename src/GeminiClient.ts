@@ -29,6 +29,11 @@ export class GeminiClient {
       const model = this.ai.getGenerativeModel({
         model: this.model,
         systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: 'MINIMAL',
+          },
+        },
       });
 
       const result = await model.generateContent(prompt);
@@ -55,6 +60,11 @@ export class GeminiClient {
       const model = this.ai.getGenerativeModel({
         model: this.model,
         systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: 'MINIMAL',
+          },
+        },
       });
 
       const result = await model.generateContentStream(prompt);
