@@ -55,8 +55,12 @@ export default class SmartExplainPlugin extends Plugin {
     // Extract context
     const context = extractContext(editor, view);
 
+    // Capture selection info before modal opens (cursor may move)
+    const selectedText = editor.getSelection();
+    const selectionEnd = editor.getCursor('to');
+
     // Create and show modal with loading state
-    const modal = new ExplainModal(this.app, coords);
+    const modal = new ExplainModal(this.app, coords, editor, view, selectedText, this.settings.apiKey, selectionEnd);
     modal.open();
 
     try {

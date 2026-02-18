@@ -1,4 +1,16 @@
-import { App, Modal, MarkdownRenderer, Component } from 'obsidian';
+import { App, Editor, Modal, MarkdownRenderer, MarkdownView, Component, Notice } from 'obsidian';
+import { GeminiClient } from './GeminiClient';
+
+function findNextFootnoteNumber(editorContent: string): number {
+  const regex = /\[\^(\d+)\]/g;
+  let max = 0;
+  let match;
+  while ((match = regex.exec(editorContent)) !== null) {
+    const num = parseInt(match[1], 10);
+    if (num > max) max = num;
+  }
+  return max + 1;
+}
 
 export class ExplainModal extends Modal {
   private content: string = '';
@@ -9,10 +21,29 @@ export class ExplainModal extends Modal {
   private renderComponent: Component;
   private clickHandler: (e: MouseEvent) => void;
   private contentWrapper: HTMLElement | null = null;
+  private scrollContainer: HTMLElement | null = null;
+  private editor: Editor;
+  private view: MarkdownView;
+  private selectedText: string;
+  private apiKey: string;
+  private selectionEnd: { line: number; ch: number };
 
-  constructor(app: App, coords: { x: number; y: number }) {
+  constructor(
+    app: App,
+    coords: { x: number; y: number },
+    editor: Editor,
+    view: MarkdownView,
+    selectedText: string,
+    apiKey: string,
+    selectionEnd: { line: number; ch: number }
+  ) {
     super(app);
     this.targetCoords = coords;
+    this.editor = editor;
+    this.view = view;
+    this.selectedText = selectedText;
+    this.apiKey = apiKey;
+    this.selectionEnd = selectionEnd;
     this.renderComponent = new Component();
 
     this.clickHandler = (e: MouseEvent) => {
@@ -152,6 +183,7 @@ export class ExplainModal extends Modal {
 
     // Create scrollable container
     const scrollContainer = contentEl.createEl('div', { cls: 'smart-explain-scroll-container' });
+    this.scrollContainer = scrollContainer;
     this.contentWrapper = scrollContainer.createEl('div', { cls: 'smart-explain-content' });
 
     if (this.content) {
@@ -162,6 +194,55 @@ export class ExplainModal extends Modal {
         '',
         this.renderComponent
       );
+    }
+
+    this.renderFootnoteButton();
+  }
+
+  private renderFootnoteButton() {
+    if (!this.scrollContainer) return;
+
+    const existing = this.scrollContainer.querySelector('.smart-explain-actions');
+    if (existing) existing.remove();
+
+    if (!this.isLoading && !this.isStreaming && !this.error && this.content) {
+      const actions = this.scrollContainer.createEl('div', { cls: 'smart-explain-actions' });
+      const btn = actions.createEl('button', {
+        cls: 'smart-explain-footnote-btn',
+        text: 'Add as Footnote',
+      });
+      btn.addEventListener('click', () => this.addFootnote(btn));
+    }
+  }
+
+  private async addFootnote(btn: HTMLButtonElement) {
+    try {
+      btn.disabled = true;
+      btn.textContent = 'Adding...';
+
+      const client = new GeminiClient(this.apiKey);
+      const oneSentence = await client.summarize(this.content);
+
+      const editorContent = this.editor.getValue();
+      const footnoteNum = findNextFootnoteNumber(editorContent);
+      const ref = `[^${footnoteNum}]`;
+
+      // Insert reference at the stored selection end position
+      this.editor.replaceRange(ref, this.selectionEnd);
+
+      // Append definition at end of file
+      const lastLine = this.editor.lastLine();
+      const lastLineContent = this.editor.getLine(lastLine);
+      const endPos = { line: lastLine, ch: lastLineContent.length };
+      this.editor.replaceRange(`\n${ref}: ${oneSentence}`, endPos);
+
+      new Notice('Footnote added');
+      this.close();
+    } catch (error) {
+      btn.disabled = false;
+      btn.textContent = 'Add as Footnote';
+      const message = error instanceof Error ? error.message : 'Failed to add footnote';
+      new Notice(message);
     }
   }
 
@@ -180,5 +261,7 @@ export class ExplainModal extends Modal {
         this.renderComponent
       );
     }
+
+    this.renderFootnoteButton();
   }
 }

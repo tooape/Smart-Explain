@@ -31,144 +31,6 @@ var import_obsidian3 = require("obsidian");
 
 // src/ExplainModal.ts
 var import_obsidian = require("obsidian");
-var ExplainModal = class extends import_obsidian.Modal {
-  constructor(app, coords) {
-    super(app);
-    this.content = "";
-    this.isLoading = true;
-    this.isStreaming = false;
-    this.error = null;
-    this.contentWrapper = null;
-    this.targetCoords = coords;
-    this.renderComponent = new import_obsidian.Component();
-    this.clickHandler = (e) => {
-      setTimeout(() => {
-        if (!this.containerEl.contains(e.target)) {
-          this.close();
-        }
-      }, 0);
-    };
-  }
-  onOpen() {
-    this.containerEl.addClass("smart-explain-modal");
-    this.modalEl.addClass("smart-explain-modal-inner");
-    this.positionModal();
-    this.render();
-    setTimeout(() => {
-      document.addEventListener("click", this.clickHandler);
-    }, 100);
-    this.renderComponent.load();
-  }
-  onClose() {
-    document.removeEventListener("click", this.clickHandler);
-    this.renderComponent.unload();
-    this.contentEl.empty();
-  }
-  setLoading(loading) {
-    this.isLoading = loading;
-    this.render();
-  }
-  setContent(content) {
-    this.content = content;
-    this.isLoading = false;
-    this.isStreaming = false;
-    this.error = null;
-    this.render();
-  }
-  startStreaming() {
-    this.content = "";
-    this.isLoading = true;
-    this.isStreaming = true;
-    this.error = null;
-    this.render();
-  }
-  appendChunk(chunk) {
-    if (this.isLoading) {
-      this.isLoading = false;
-      this.content = chunk;
-      this.render();
-    } else {
-      this.content += chunk;
-      this.rerenderContent();
-    }
-  }
-  finishStreaming() {
-    this.isStreaming = false;
-    this.rerenderContent();
-  }
-  setError(error) {
-    this.error = error;
-    this.isLoading = false;
-    this.isStreaming = false;
-    this.render();
-  }
-  positionModal() {
-    const modalEl = this.modalEl;
-    modalEl.style.position = "fixed";
-    modalEl.style.margin = "0";
-    let top = this.targetCoords.y + 10;
-    let left = this.targetCoords.x;
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const modalWidth = 400;
-    const modalHeight = 300;
-    if (left + modalWidth > viewportWidth - 20) {
-      left = viewportWidth - modalWidth - 20;
-    }
-    if (left < 20) {
-      left = 20;
-    }
-    if (top + modalHeight > viewportHeight - 20) {
-      top = this.targetCoords.y - modalHeight - 10;
-      if (top < 20) {
-        top = 20;
-      }
-    }
-    modalEl.style.top = `${top}px`;
-    modalEl.style.left = `${left}px`;
-    modalEl.style.transform = "none";
-  }
-  render() {
-    const { contentEl } = this;
-    contentEl.empty();
-    if (this.isLoading) {
-      const loadingEl = contentEl.createEl("div", { cls: "smart-explain-loading" });
-      loadingEl.createEl("div", { cls: "smart-explain-spinner" });
-      loadingEl.createEl("span", { text: "Thinking..." });
-      return;
-    }
-    if (this.error) {
-      const errorEl = contentEl.createEl("div", { cls: "smart-explain-error" });
-      errorEl.createEl("span", { text: this.error });
-      return;
-    }
-    const scrollContainer = contentEl.createEl("div", { cls: "smart-explain-scroll-container" });
-    this.contentWrapper = scrollContainer.createEl("div", { cls: "smart-explain-content" });
-    if (this.content) {
-      import_obsidian.MarkdownRenderer.render(
-        this.app,
-        this.content,
-        this.contentWrapper,
-        "",
-        this.renderComponent
-      );
-    }
-  }
-  rerenderContent() {
-    if (!this.contentWrapper)
-      return;
-    this.contentWrapper.empty();
-    if (this.content) {
-      import_obsidian.MarkdownRenderer.render(
-        this.app,
-        this.content,
-        this.contentWrapper,
-        "",
-        this.renderComponent
-      );
-    }
-  }
-};
 
 // node_modules/@google/generative-ai/dist/index.mjs
 var SchemaType;
@@ -1158,7 +1020,12 @@ var GeminiClient = class {
     try {
       const model = this.ai.getGenerativeModel({
         model: this.model,
-        systemInstruction: SYSTEM_PROMPT
+        systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: "MINIMAL"
+          }
+        }
       });
       const result = await model.generateContent(prompt);
       const response = result.response;
@@ -1181,7 +1048,12 @@ var GeminiClient = class {
     try {
       const model = this.ai.getGenerativeModel({
         model: this.model,
-        systemInstruction: SYSTEM_PROMPT
+        systemInstruction: SYSTEM_PROMPT,
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: "MINIMAL"
+          }
+        }
       });
       const result = await model.generateContentStream(prompt);
       for await (const chunk of result.stream) {
@@ -1203,6 +1075,26 @@ var GeminiClient = class {
       throw new Error("An unexpected error occurred while calling Gemini.");
     }
   }
+  async summarize(explanationText) {
+    try {
+      const model = this.ai.getGenerativeModel({
+        model: this.model,
+        systemInstruction: "Condense the following explanation into a single concise sentence suitable for a footnote. Return only the sentence, no preamble.",
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: "MINIMAL"
+          }
+        }
+      });
+      const result = await model.generateContent(explanationText);
+      return result.response.text().trim();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Gemini API error: ${error.message}`);
+      }
+      throw new Error("An unexpected error occurred while summarizing.");
+    }
+  }
   buildPrompt(context) {
     const headingPath = context.headingPath.length > 0 ? context.headingPath.join(" > ") : "No heading";
     return `CONTEXT:
@@ -1213,6 +1105,205 @@ var GeminiClient = class {
 TASK: Explain the following selected text clearly and concisely.
 
 Selected text: "${context.selectedText}"`;
+  }
+};
+
+// src/ExplainModal.ts
+function findNextFootnoteNumber(editorContent) {
+  const regex = /\[\^(\d+)\]/g;
+  let max = 0;
+  let match;
+  while ((match = regex.exec(editorContent)) !== null) {
+    const num = parseInt(match[1], 10);
+    if (num > max)
+      max = num;
+  }
+  return max + 1;
+}
+var ExplainModal = class extends import_obsidian.Modal {
+  constructor(app, coords, editor, view, selectedText, apiKey, selectionEnd) {
+    super(app);
+    this.content = "";
+    this.isLoading = true;
+    this.isStreaming = false;
+    this.error = null;
+    this.contentWrapper = null;
+    this.scrollContainer = null;
+    this.targetCoords = coords;
+    this.editor = editor;
+    this.view = view;
+    this.selectedText = selectedText;
+    this.apiKey = apiKey;
+    this.selectionEnd = selectionEnd;
+    this.renderComponent = new import_obsidian.Component();
+    this.clickHandler = (e) => {
+      setTimeout(() => {
+        if (!this.containerEl.contains(e.target)) {
+          this.close();
+        }
+      }, 0);
+    };
+  }
+  onOpen() {
+    this.containerEl.addClass("smart-explain-modal");
+    this.modalEl.addClass("smart-explain-modal-inner");
+    this.positionModal();
+    this.render();
+    setTimeout(() => {
+      document.addEventListener("click", this.clickHandler);
+    }, 100);
+    this.renderComponent.load();
+  }
+  onClose() {
+    document.removeEventListener("click", this.clickHandler);
+    this.renderComponent.unload();
+    this.contentEl.empty();
+  }
+  setLoading(loading) {
+    this.isLoading = loading;
+    this.render();
+  }
+  setContent(content) {
+    this.content = content;
+    this.isLoading = false;
+    this.isStreaming = false;
+    this.error = null;
+    this.render();
+  }
+  startStreaming() {
+    this.content = "";
+    this.isLoading = true;
+    this.isStreaming = true;
+    this.error = null;
+    this.render();
+  }
+  appendChunk(chunk) {
+    if (this.isLoading) {
+      this.isLoading = false;
+      this.content = chunk;
+      this.render();
+    } else {
+      this.content += chunk;
+      this.rerenderContent();
+    }
+  }
+  finishStreaming() {
+    this.isStreaming = false;
+    this.rerenderContent();
+  }
+  setError(error) {
+    this.error = error;
+    this.isLoading = false;
+    this.isStreaming = false;
+    this.render();
+  }
+  positionModal() {
+    const modalEl = this.modalEl;
+    modalEl.style.position = "fixed";
+    modalEl.style.margin = "0";
+    let top = this.targetCoords.y + 10;
+    let left = this.targetCoords.x;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const modalWidth = 400;
+    const modalHeight = 300;
+    if (left + modalWidth > viewportWidth - 20) {
+      left = viewportWidth - modalWidth - 20;
+    }
+    if (left < 20) {
+      left = 20;
+    }
+    if (top + modalHeight > viewportHeight - 20) {
+      top = this.targetCoords.y - modalHeight - 10;
+      if (top < 20) {
+        top = 20;
+      }
+    }
+    modalEl.style.top = `${top}px`;
+    modalEl.style.left = `${left}px`;
+    modalEl.style.transform = "none";
+  }
+  render() {
+    const { contentEl } = this;
+    contentEl.empty();
+    if (this.isLoading) {
+      const loadingEl = contentEl.createEl("div", { cls: "smart-explain-loading" });
+      loadingEl.createEl("div", { cls: "smart-explain-spinner" });
+      loadingEl.createEl("span", { text: "Thinking..." });
+      return;
+    }
+    if (this.error) {
+      const errorEl = contentEl.createEl("div", { cls: "smart-explain-error" });
+      errorEl.createEl("span", { text: this.error });
+      return;
+    }
+    const scrollContainer = contentEl.createEl("div", { cls: "smart-explain-scroll-container" });
+    this.scrollContainer = scrollContainer;
+    this.contentWrapper = scrollContainer.createEl("div", { cls: "smart-explain-content" });
+    if (this.content) {
+      import_obsidian.MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        "",
+        this.renderComponent
+      );
+    }
+    this.renderFootnoteButton();
+  }
+  renderFootnoteButton() {
+    if (!this.scrollContainer)
+      return;
+    const existing = this.scrollContainer.querySelector(".smart-explain-actions");
+    if (existing)
+      existing.remove();
+    if (!this.isLoading && !this.isStreaming && !this.error && this.content) {
+      const actions = this.scrollContainer.createEl("div", { cls: "smart-explain-actions" });
+      const btn = actions.createEl("button", {
+        cls: "smart-explain-footnote-btn",
+        text: "Add as Footnote"
+      });
+      btn.addEventListener("click", () => this.addFootnote(btn));
+    }
+  }
+  async addFootnote(btn) {
+    try {
+      btn.disabled = true;
+      btn.textContent = "Adding...";
+      const client = new GeminiClient(this.apiKey);
+      const oneSentence = await client.summarize(this.content);
+      const editorContent = this.editor.getValue();
+      const footnoteNum = findNextFootnoteNumber(editorContent);
+      const ref = `[^${footnoteNum}]`;
+      this.editor.replaceRange(ref, this.selectionEnd);
+      const lastLine = this.editor.lastLine();
+      const lastLineContent = this.editor.getLine(lastLine);
+      const endPos = { line: lastLine, ch: lastLineContent.length };
+      this.editor.replaceRange(`
+${ref}: ${oneSentence}`, endPos);
+      new import_obsidian.Notice("Footnote added");
+      this.close();
+    } catch (error) {
+      btn.disabled = false;
+      btn.textContent = "Add as Footnote";
+      const message = error instanceof Error ? error.message : "Failed to add footnote";
+      new import_obsidian.Notice(message);
+    }
+  }
+  rerenderContent() {
+    if (!this.contentWrapper)
+      return;
+    this.contentWrapper.empty();
+    if (this.content) {
+      import_obsidian.MarkdownRenderer.render(
+        this.app,
+        this.content,
+        this.contentWrapper,
+        "",
+        this.renderComponent
+      );
+    }
+    this.renderFootnoteButton();
   }
 };
 
@@ -1312,7 +1403,9 @@ var SmartExplainPlugin = class extends import_obsidian3.Plugin {
     }
     const coords = this.getSelectionCoords(view);
     const context = extractContext(editor, view);
-    const modal = new ExplainModal(this.app, coords);
+    const selectedText = editor.getSelection();
+    const selectionEnd = editor.getCursor("to");
+    const modal = new ExplainModal(this.app, coords, editor, view, selectedText, this.settings.apiKey, selectionEnd);
     modal.open();
     try {
       const client = new GeminiClient(this.settings.apiKey);

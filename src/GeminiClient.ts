@@ -89,6 +89,28 @@ export class GeminiClient {
     }
   }
 
+  async summarize(explanationText: string): Promise<string> {
+    try {
+      const model = this.ai.getGenerativeModel({
+        model: this.model,
+        systemInstruction: 'Condense the following explanation into a single concise sentence suitable for a footnote. Return only the sentence, no preamble.',
+        generationConfig: {
+          thinkingConfig: {
+            thinkingLevel: 'MINIMAL',
+          },
+        },
+      });
+
+      const result = await model.generateContent(explanationText);
+      return result.response.text().trim();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Gemini API error: ${error.message}`);
+      }
+      throw new Error('An unexpected error occurred while summarizing.');
+    }
+  }
+
   private buildPrompt(context: ExplainContext): string {
     const headingPath = context.headingPath.length > 0
       ? context.headingPath.join(' > ')

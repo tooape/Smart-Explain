@@ -91,3 +91,29 @@
   border-radius: 3px;
   font-size: 13px;
 }
+
+.smart-explain-actions {
+  margin-top: 12px;
+  padding-top: 8px;
+  text-align: right;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.smart-explain-footnote-btn {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.smart-explain-footnote-btn:hover {
+  opacity: 0.9;
+}
+
+.smart-explain-footnote-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
