@@ -227,14 +227,17 @@ export class ExplainModal extends Modal {
       const footnoteNum = findNextFootnoteNumber(editorContent);
       const ref = `[^${footnoteNum}]`;
 
-      // Insert reference at the stored selection end position
-      this.editor.replaceRange(ref, this.selectionEnd);
-
-      // Append definition at end of file
+      // Append definition at end of file FIRST — inserting at the end
+      // doesn't shift any positions above, keeping selectionEnd valid.
+      // (Reversed order avoids CM6 transaction conflicts that silently
+      // dropped the second replaceRange call.)
       const lastLine = this.editor.lastLine();
       const lastLineContent = this.editor.getLine(lastLine);
       const endPos = { line: lastLine, ch: lastLineContent.length };
-      this.editor.replaceRange(`\n${ref}: ${oneSentence}`, endPos);
+      this.editor.replaceRange(`\n\n${ref}: ${oneSentence}`, endPos);
+
+      // Insert inline reference at the stored selection end position
+      this.editor.replaceRange(ref, this.selectionEnd);
 
       new Notice('Footnote added');
       this.close();

@@ -1275,12 +1275,13 @@ var ExplainModal = class extends import_obsidian.Modal {
       const editorContent = this.editor.getValue();
       const footnoteNum = findNextFootnoteNumber(editorContent);
       const ref = `[^${footnoteNum}]`;
-      this.editor.replaceRange(ref, this.selectionEnd);
       const lastLine = this.editor.lastLine();
       const lastLineContent = this.editor.getLine(lastLine);
       const endPos = { line: lastLine, ch: lastLineContent.length };
       this.editor.replaceRange(`
+
 ${ref}: ${oneSentence}`, endPos);
+      this.editor.replaceRange(ref, this.selectionEnd);
       new import_obsidian.Notice("Footnote added");
       this.close();
     } catch (error) {
